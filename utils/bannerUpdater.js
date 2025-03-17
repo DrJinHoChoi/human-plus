@@ -1,7 +1,9 @@
 const apiClient = require('./apiClient');
 const fs = require('fs').promises;
+const fsExtra = require('fs-extra');
 const path = require('path');
 const logger = require('./logger');
+const { getPrompt } = require('../prompts/imagePrompts');
 
 class BannerUpdater {
     constructor() {
@@ -74,33 +76,39 @@ class BannerUpdater {
         }
     }
 
-    async updateBanner(pageType, targetFile) {
+    async updateBanner(pageType, bannerFileName) {
         try {
-            await this.ensureDirectoryExists();
-            
-            const bannerConfig = this.bannerTypes[pageType];
-            if (!bannerConfig) {
-                throw new Error(`Invalid page type: ${pageType}`);
-            }
-
-            // Generate banner prompt based on page type
-            const prompt = await this.generateBannerPrompt(pageType);
-            
-            // Generate image using OpenAI
-            const imageData = await apiClient.generateImage(prompt);
-            
-            // Save the image
-            const filePath = path.join(this.bannerDir, targetFile);
-            await fs.writeFile(filePath, Buffer.from(imageData, 'base64'));
-            
-            // Set file permissions
-            await fs.chmod(filePath, 0o644);
-            
-            logger.info(`Updated banner image: ${filePath}`);
+            // 디버깅을 위한 로그 추가
+            logger.info(`Updating banner: ${pageType}, file: ${bannerFileName}`);
+            logger.info(`Directory check: ${this.bannerDir}`);
+        
+            // 디렉토리 존재 확인 및 생성
+            await fsExtra.ensureDir(this.bannerDir);
+        
+            // 이미지 프롬프트 가져오기 및 로깅
+            const prompt = getPrompt(pageType, 1);
+            logger.info(`Image prompt: ${prompt.substring(0, 50)}...`);
+        
+            // 이미지 생성
+            const base64Image = await apiClient.generateImage(prompt);
+            logger.info(`Image generated successfully, size: ${base64Image ? base64Image.length : 0}`);
+        
+            // 파일 저장
+            const filePath = path.join(this.bannerDir, bannerFileName);
+            logger.info(`Saving to: ${filePath}`);
+            await fs.writeFile(filePath, Buffer.from(base64Image, 'base64'));
+        
             return true;
         } catch (error) {
-            logger.error(`Failed to update banner for ${pageType}:`, error);
-            throw error;
+            logger.error(`Failed to update banner ${pageType}:`, error);
+            // 상세 오류 로깅
+            if (error.response) {
+                logger.error(`API Error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+            }
+            return {
+                success: false,
+                error: error.message
+            };
         }
     }
 

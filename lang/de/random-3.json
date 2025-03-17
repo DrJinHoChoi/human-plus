@@ -1,1 +1,16 @@
-"{\n  \"titel\": \"Die besten Reiseziele für Abenteuerlustige\",\n  \"untertitel\": \"Entdecken Sie aufregende Orte auf der ganzen Welt\",\n  \"orte\": [\n    {\n      \"name\": \"Machu Picchu, Peru\",\n      \"beschreibung\": \"Erkunden Sie die antike Inka-Stadt hoch in den peruanischen Anden. Ein atemberaubender Ort für Wanderer und Abenteurer.\"\n    },\n    {\n      \"name\": \"Island, Island\",\n      \"beschreibung\": \"Tauchen Sie ein in die geothermischen Pools, Gletscher und Vulkane dieser einzigartigen nordatlantischen Insel. Ein Paradies für Outdoor-Enthusiasten.\"\n    },\n    {\n      \"name\": \"Namib-Wüste, Namibia\",\n      \"beschreibung\": \"Erleben Sie die endlose Weite und spektakulären Dünen dieser ältesten Wüste der Welt. Ein Ort der Stille und Schönheit für Abenteurer.\"\n    },\n    {\n      \"name\": \"Neuseeland, Neuseeland\",\n      \"beschreibung\": \"Entdecken Sie die vielfältige Landschaft von Neuseeland, von fjordartigen Sounds über aktive Vulkane bis hin zu malerischen Stränden. Ein Traumziel für Abenteuerlustige.\"\n    }\n  ]\n}"
+{
+  "random-vision-text": "차세대를 위한 기술 혁신으로<br>끊임없이 발전하고 성장합니다",
+  "vision-card-random-text-1": "글로벌 자동차 부품 시장의 선두기업",
+  "vision-card-random-text-2": "고도의 정밀성을 자랑하는 설비 생산",
+  "vision-card-random-text-3": "국제 인증과 기술 혁신의 결합",
+  "vision-card-random-text-4": "세계 시장을 위한 믿을 수 있는 파트너",
+  "index-hero-title-random-keyword1": "Innovate",
+  "index-hero-title-random-keyword2": "Reliable",
+  "index-hero-random-description": "Human Plus는<br>국제적인 신뢰를 기반으로<br>고객 중심의 기술과 세밀한<br>공정 관리로 앞서 나갑니다",
+  "index-introduce-random-description": "Human Plus는 <strong>국제적인 신뢰</strong>를 바탕으로 <strong>고객 중심의 기술</strong>과 <strong>세밀한 공정 관리</strong>로 앞서 나갑니다",
+  "index-card-introduce-random-description": "자동차 부품 제조의 선두주자,<br><span>HUMAN PLUS</span>는<br><strong>지속적인 혁신</strong>과 <strong>품질 향상</strong>을 통해<br><strong>고객의 신뢰</strong>를 얻어냅니다",
+  "index-collaboration-random-description": "Human Plus는 <strong>세계적인 신뢰</strong>를 바탕으로 <strong>고객 중심의 기술</strong>과 <strong>철저한 공정 관리</strong>로 <strong>업계 선두</strong>를 유지합니다",
+  "technology-hero-random-description": "고객 중심의 기술 혁신과<br>정밀한 공정 관리로<br>제조의 새로운 기준을 세우고 있습니다<br>",
+  "news-highlight-random-description": "우리가 제작하는 부품은 단순히 부품이 아닙니다<br>그것은 전 세계를 연결하는 신뢰의 링크입니다<br>휴먼플러스는 글로벌 자동차 산업의 미래를 함께 구축합니다",
+  "history-content-random-title": "Human Plus는 글로벌 신뢰를 바탕으로, <br>고객 중심의 기술과 <br>세밀한 공정 관리를 통해 선두를 달리고 있습니다"
+}

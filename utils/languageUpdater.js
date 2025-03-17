@@ -97,7 +97,18 @@ class LanguageUpdater {
                             JSON.stringify(englishContent),
                             targetLang
                         );
-                        translations.set(targetLang, JSON.parse(translatedContent));
+			try {
+ 			// JSON 형식이 올바른지 확인하고 필요시 정제
+			let jsonContent = translatedContent.trim();
+    			// JSON 시작/끝 확인 및 수정
+    			if (!jsonContent.startsWith('{')) jsonContent = '{' + jsonContent.substring(jsonContent.indexOf('"'));
+    			if (!jsonContent.endsWith('}')) jsonContent = jsonContent.substring(0, jsonContent.lastIndexOf('}') + 1);
+			translations.set(targetLang, JSON.parse(jsonContent));
+			} catch (error) {
+			logger.error(`JSON parsing failed for ${targetLang}:`, error);
+			// 원본 영어 콘텐츠로 대체
+			translations.set(targetLang, englishContent);
+			}
                     } catch (error) {
                         logger.error(`Translation failed for ${targetLang}:`, error);
                         throw error;
@@ -160,4 +171,4 @@ class LanguageUpdater {
 
 module.exports = {
     LanguageUpdater
-}; 
+};

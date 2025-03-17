@@ -45,7 +45,7 @@ class ApiClient {
                     model: "gpt-4",
                     messages: [{
                         role: "system",
-                        content: translationPrompt(targetLang)
+                        content: translationPrompt
                     }, {
                         role: "user",
                         content: text
@@ -124,7 +124,10 @@ async function checkAPIStatus() {
     }
 }
 
+const apiClientInstance = new ApiClient();
 module.exports = {
-    ...new ApiClient(),
+    generateText: apiClientInstance.generateText.bind(apiClientInstance),
+    translateText: apiClientInstance.translateText.bind(apiClientInstance),
+    generateImage: apiClientInstance.generateImage.bind(apiClientInstance),
     checkAPIStatus
 };
