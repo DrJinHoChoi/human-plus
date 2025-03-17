@@ -2,6 +2,7 @@ const apiClient = require('./apiClient');
 const fs = require('fs').promises;
 const path = require('path');
 const logger = require('./logger');
+const { translateToMultipleLanguages } = require('./translator');
 
 class LanguageUpdater {
     constructor() {
@@ -84,46 +85,44 @@ class LanguageUpdater {
             // Generate base content in English
             const englishContent = await this.generateRandomContent(version);
             
-            // Create a map to store all translations
-            const translations = new Map();
-            translations.set('en', englishContent);
-            
-            // Translate to all supported languages
-            const translationPromises = this.supportedLanguages
-                .filter(lang => lang !== 'en')
-                .map(async (targetLang) => {
-                    try {
-                        const translatedContent = await apiClient.translateText(
-                            JSON.stringify(englishContent),
-                            targetLang
-                        );
-			try {
- 			// JSON 형식이 올바른지 확인하고 필요시 정제
-			let jsonContent = translatedContent.trim();
-    			// JSON 시작/끝 확인 및 수정
-    			if (!jsonContent.startsWith('{')) jsonContent = '{' + jsonContent.substring(jsonContent.indexOf('"'));
-    			if (!jsonContent.endsWith('}')) jsonContent = jsonContent.substring(0, jsonContent.lastIndexOf('}') + 1);
-			translations.set(targetLang, JSON.parse(jsonContent));
-			} catch (error) {
-			logger.error(`JSON parsing failed for ${targetLang}:`, error);
-			// 원본 영어 콘텐츠로 대체
-			translations.set(targetLang, englishContent);
-			}
-                    } catch (error) {
-                        logger.error(`Translation failed for ${targetLang}:`, error);
-                        throw error;
-                    }
-                });
-            
-            await Promise.all(translationPromises);
+            // 새로운 translator 모듈을 사용하여 모든 언어로 번역
+            const translations = await translateToMultipleLanguages(englishContent, this.supportedLanguages);
             
             // Save all translations
             const savePromises = Array.from(translations.entries()).map(
                 async ([lang, content]) => {
-                    const filePath = path.join(this.langDir, lang, `random-${version}.json`);
-                    await fs.writeFile(filePath, JSON.stringify(content, null, 2), 'utf8');
-                    await fs.chmod(filePath, 0o644);
-                    logger.info(`Updated language file: ${filePath}`);
+                    try {
+                        // 저장 전 파일 콘텐츠 검증
+                        const fileContent = JSON.stringify(content, null, 2);
+                        
+                        // 저장할 파일이 유효한 JSON인지 다시 확인
+                        try {
+                            JSON.parse(fileContent);
+                        } catch (validateError) {
+                            logger.error(`Invalid JSON content for ${lang}, version ${version}: ${validateError.message}`);
+                            // 유효하지 않은 경우, 영어 콘텐츠 사용
+                            content = translations.get('en');
+                        }
+                        
+                        const filePath = path.join(this.langDir, lang, `random-${version}.json`);
+                        
+                        // 기존 파일이 있다면 백업
+                        try {
+                            await this.backupLanguageFile(lang, version);
+                        } catch (backupError) {
+                            // 백업 실패는 치명적 오류가 아님
+                            logger.warn(`Failed to backup ${lang} file version ${version}: ${backupError.message}`);
+                        }
+                        
+                        // 파일 저장
+                        await fs.writeFile(filePath, JSON.stringify(content, null, 2), 'utf8');
+                        await fs.chmod(filePath, 0o644);
+                        logger.info(`Updated language file: ${filePath}`);
+                    } catch (saveError) {
+                        logger.error(`Failed to save language file for ${lang}, version ${version}: ${saveError.message}`);
+                        // 하나의 파일 저장 실패가 전체 프로세스를 중단시키지 않도록 처리
+                        // 다른 파일들은 계속 저장
+                    }
                 }
             );
             

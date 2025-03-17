@@ -63,18 +63,28 @@ class ApiClient {
     async generateImage(prompt) {
         try {
             const operation = async () => {
-                const response = await this.client.post('/v1/images/generations', {
+                logger.info(`Starting image generation with prompt: ${prompt.substring(0, 50)}...`);
+                const response = await this.client.post('/images/generations', {
                     prompt,
                     n: 1,
                     size: '1024x1024',
                     response_format: 'b64_json'
                 });
+                
+                if (!response.data || !response.data.data || !response.data.data[0] || !response.data.data[0].b64_json) {
+                    throw new Error('Invalid response format from image generation API');
+                }
+                
+                logger.info('Image generation successful');
                 return response.data.data[0].b64_json;
             };
 
             return await retryOperation(operation);
         } catch (error) {
-            logger.error('Image generation failed:', error);
+            logger.error(`Image generation failed: ${error.message}`);
+            if (error.response) {
+                logger.error(`API Error: ${error.response.status} - "${error.response.data}"`);
+            }
             throw error;
         }
     }

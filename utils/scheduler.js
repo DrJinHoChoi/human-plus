@@ -188,47 +188,85 @@ class Scheduler {
      */
     async updateBanners() {
         try {
-            logger.scheduler.start('Banner updates');
+            const bannerUpdater = new BannerUpdater();
+            const results = {
+                success: true,
+                timestamp: new Date(),
+                details: {}
+            };
             
-            // 모든 페이지 타입에 대한 배너 업데이트
-            const bannerTypes = Object.keys(this.bannerUpdater.bannerTypes);
-            const results = {};
+            logger.info('Starting banner update process for all types');
             
-            for (const pageType of bannerTypes) {
+            // 모든 배너 유형에 대해 처리
+            const bannerTypes = [
+                { type: 'index-hero', count: 3, bannerFile: 'banner-1.png' },
+                { type: 'news-hero', count: 1, bannerFile: 'banner-2.png' },
+                { type: 'history-hero', count: 1, bannerFile: 'banner-3.png' },
+                { type: 'technology-hero', count: 1, bannerFile: 'banner-4.png' },
+                { type: 'vision-card', count: 4, bannerFile: 'banner-5.png' },
+                { type: 'company-overview', count: 3, bannerFile: 'banner-6.png' },
+                { type: 'electronics', count: 1, bannerFile: 'banner-7.png' },
+                { type: 'cnc', count: 1, bannerFile: 'banner-8.png' }
+            ];
+            
+            // 순차적으로 각 배너 업데이트 (배너 생성은 리소스 집약적이므로 병렬보다 순차 선호)
+            for (const bannerType of bannerTypes) {
                 try {
-                    const config = this.bannerUpdater.bannerTypes[pageType];
-                    for (let i = 1; i <= config.count; i++) {
-                        const variant = Math.floor(Math.random() * config.variants) + 1;
-                        const targetFile = `${config.prefix}${i}-v${variant}.png`;
-                        
-                        // 배너 업데이트
-                        await this.bannerUpdater.updateBanner(pageType, targetFile);
-                        results[`${pageType}-${i}`] = { success: true, variant };
+                    logger.info(`Updating banner type: ${bannerType.type}`);
+                    
+                    // 각 유형별로 필요한 개수만큼 배너 생성
+                    for (let i = 1; i <= bannerType.count; i++) {
+                        try {
+                            // 랜덤 변형 선택 (각 배너 유형별 변형 수에 따라)
+                            const variant = Math.floor(Math.random() * 5) + 1; // 1-5 중 랜덤
+                            
+                            // 표준화된 파일명 사용
+                            const fileName = `${bannerType.type}-${i}-v${variant}.png`;
+                            
+                            logger.info(`Generating banner: ${fileName}`);
+                            
+                            // 배너 업데이트 시도
+                            const success = await bannerUpdater.updateBanner(bannerType.type, fileName);
+                            
+                            // 결과 기록
+                            results.details[`${bannerType.type}-${i}`] = {
+                                success,
+                                variant,
+                                fileName
+                            };
+                            
+                            if (!success) {
+                                logger.warn(`Failed to generate banner: ${fileName}`);
+                                results.success = false;
+                            }
+                        } catch (itemError) {
+                            logger.error(`Error generating banner ${bannerType.type}-${i}:`, itemError);
+                            results.details[`${bannerType.type}-${i}`] = {
+                                success: false,
+                                error: itemError.message
+                            };
+                            results.success = false;
+                        }
                     }
-                } catch (error) {
-                    results[pageType] = { success: false, error: error.message };
-                    logger.error(`Failed to update banner for ${pageType}:`, error);
+                } catch (typeError) {
+                    logger.error(`Error processing banner type ${bannerType.type}:`, typeError);
+                    results.details[bannerType.type] = {
+                        success: false,
+                        error: typeError.message
+                    };
+                    results.success = false;
                 }
             }
             
-            // 상태 업데이트
-            this.lastStatus.bannerUpdates = {
-                success: Object.values(results).every(r => r.success),
-                timestamp: new Date(),
-                details: results
-            };
-            
-            logger.scheduler.complete('Banner updates');
-            return true;
+            logger.info(`Banner update process completed with ${results.success ? 'success' : 'some failures'}`);
+            return results;
         } catch (error) {
-            this.lastStatus.bannerUpdates = {
+            logger.error('Failed to update banners:', error);
+            return {
                 success: false,
                 timestamp: new Date(),
-                details: { error: error.message }
+                error: error.message
             };
-            
-            logger.scheduler.error('Banner updates', error);
-            return false;
         }
     }
 
@@ -278,22 +316,51 @@ class Scheduler {
      */
     async runUpdates() {
         if (this.isRunning) {
-            logger.warn('Update already in progress, skipping');
-            return;
+            logger.warn('Scheduler is already running, skipping this run');
+            return false;
         }
-
-        // 시작 시간 기록
-        const startTime = new Date();
+        
         this.isRunning = true;
+        const startTime = new Date();
         this.lastRun = startTime;
         
-        logger.info('Starting scheduled content update');
-        
         try {
-            // 주요 업데이트 작업 실행
-            await this.generateNewContent();
-            await this.updateBanners();
-            await this.updateLanguages();
+            logger.info('Starting scheduled content update');
+            
+            // 각 태스크를 독립적으로 실행 (한 태스크의 실패가 다른 태스크 실행에 영향을 주지 않음)
+            let contentGenSuccess = false;
+            let bannerSuccess = false;
+            let languageSuccess = false;
+            
+            // 1. 새 콘텐츠 생성
+            try {
+                logger.scheduler.start('New content generation');
+                contentGenSuccess = await this.generateNewContent();
+                logger.scheduler.complete('New content generation');
+            } catch (contentError) {
+                logger.scheduler.error('New content generation', contentError);
+                logger.error('Content generation failed:', contentError);
+            }
+            
+            // 2. 배너 이미지 업데이트
+            try {
+                logger.scheduler.start('Banner updates');
+                bannerSuccess = await this.updateBanners();
+                logger.scheduler.complete('Banner updates');
+            } catch (bannerError) {
+                logger.scheduler.error('Banner updates', bannerError);
+                logger.error('Banner updates failed:', bannerError);
+            }
+            
+            // 3. 다국어 콘텐츠 업데이트
+            try {
+                logger.scheduler.start('Language updates');
+                languageSuccess = await this.updateLanguages();
+                logger.scheduler.complete('Language updates');
+            } catch (langError) {
+                logger.scheduler.error('Language updates', langError);
+                logger.error('Language updates failed:', langError);
+            }
             
             // 다음 실행 시간 계산 및 상태 저장
             this.updateNextRunTime();
@@ -303,6 +370,9 @@ class Scheduler {
             const duration = (endTime - startTime) / 1000; // 초 단위
             
             logger.info(`Scheduled update completed in ${duration} seconds`);
+            
+            // 전체 성공 여부 (모든 태스크가 성공해야 true)
+            return contentGenSuccess && bannerSuccess && languageSuccess;
         } catch (error) {
             logger.error('Scheduled update failed:', error);
         } finally {

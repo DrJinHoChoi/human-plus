@@ -14,19 +14,42 @@ bannerRouter.post('/update', async (req, res) => {
         logger.api.request('POST', '/api/banner/update');
         
         const bannerTypes = ['banner-1.png', 'banner-2.png', 'banner-3.png', 'banner-4.png'];
-        const pageTypes = ['main', 'news', 'history', 'technology'];
+        const pageTypes = ['index-hero', 'news-hero', 'history-hero', 'technology-hero'];
         
-        const results = await Promise.all(
-            bannerTypes.map((banner, index) => 
-                bannerUpdater.updateBanner(pageTypes[index], banner)
-            )
-        );
+        const successResults = [];
+        const failedResults = [];
+        
+        for (let i = 0; i < bannerTypes.length; i++) {
+            try {
+                logger.info(`Updating banner: ${pageTypes[i]} (${bannerTypes[i]})`);
+                const result = await bannerUpdater.updateBanner(pageTypes[i], bannerTypes[i]);
+                
+                successResults.push({
+                    pageType: pageTypes[i],
+                    bannerFile: bannerTypes[i],
+                    success: true
+                });
+            } catch (err) {
+                logger.error(`Failed to update ${pageTypes[i]} banner:`, err);
+                failedResults.push({
+                    pageType: pageTypes[i],
+                    bannerFile: bannerTypes[i],
+                    success: false,
+                    error: err.message
+                });
+            }
+        }
 
-        logger.api.response('POST', '/api/banner/update', 200);
-        res.status(200).json({
-            success: true,
-            message: 'Banner images updated successfully',
-            results
+        const allSuccess = failedResults.length === 0;
+        
+        logger.api.response('POST', '/api/banner/update', allSuccess ? 200 : 207);
+        res.status(allSuccess ? 200 : 207).json({
+            success: allSuccess,
+            message: allSuccess 
+                ? 'All banner images updated successfully' 
+                : `${successResults.length} banner(s) updated, ${failedResults.length} failed`,
+            successful: successResults,
+            failed: failedResults
         });
     } catch (error) {
         logger.api.error('POST', '/api/banner/update', error);
