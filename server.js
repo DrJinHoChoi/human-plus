@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const init = require('./scripts/init');
+const { initializeScheduler } = require('./utils/scheduler');
 require('dotenv').config();
 
 const app = express();
@@ -31,6 +32,10 @@ async function startServer() {
     try {
         // 필요한 디렉토리와 파일들 초기화
         await init();
+        
+        // 스케줄러 초기화
+        initializeScheduler();
+        console.log('Scheduler initialized successfully');
         
         // 서버 시작
         app.listen(port, () => {

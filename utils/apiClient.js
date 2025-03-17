@@ -80,4 +80,51 @@ class ApiClient {
     }
 }
 
-module.exports = new ApiClient();
+/**
+ * API 상태 확인
+ * @returns {Promise<Object>} API 상태 정보
+ */
+async function checkAPIStatus() {
+    try {
+        const endpoint = process.env.OPENAI_API_ENDPOINT || 'https://api.openai.com/v1';
+        
+        // 간단한 API 요청으로 상태 확인
+        const response = await axios({
+            method: 'get',
+            url: `${endpoint}/models`,
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 10000 // 10초 타임아웃
+        });
+        
+        // 정상 응답 확인
+        if (response.status === 200 && response.data && response.data.data) {
+            return {
+                success: true,
+                models: response.data.data.length,
+                status: response.status,
+                message: 'API service is available'
+            };
+        } else {
+            return {
+                success: false,
+                status: response.status,
+                message: 'API responded but with unexpected format'
+            };
+        }
+    } catch (error) {
+        return {
+            success: false,
+            status: error.response?.status || 500,
+            message: error.message,
+            error: error
+        };
+    }
+}
+
+module.exports = {
+    ...new ApiClient(),
+    checkAPIStatus
+};
