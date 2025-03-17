@@ -72,6 +72,26 @@ langRouter.get('/random', async (req, res) => {
         const fileNames = files.split(',');
         const result = {};
         
+        // basic.json 파일 먼저 로드 (기본 인터페이스 번역)
+        try {
+            const basicFilePath = path.join(__dirname, `../lang/${language}/basic.json`);
+            const basicFileContent = await fs.readFile(basicFilePath, 'utf-8');
+            Object.assign(result, JSON.parse(basicFileContent));
+        } catch (basicError) {
+            logger.warn(`Failed to load basic.json for ${language}: ${basicError.message}`);
+            // basic.json 로드에 실패하면 영어 버전으로 시도
+            if (language !== 'en') {
+                try {
+                    const enBasicFilePath = path.join(__dirname, '../lang/en/basic.json');
+                    const enBasicFileContent = await fs.readFile(enBasicFilePath, 'utf-8');
+                    Object.assign(result, JSON.parse(enBasicFileContent));
+                } catch (fallbackError) {
+                    logger.error(`Failed to load fallback basic.json: ${fallbackError.message}`);
+                }
+            }
+        }
+        
+        // 랜덤 콘텐츠 파일 로드
         for (const fileName of fileNames) {
             const filePath = path.join(__dirname, `../lang/${language}/${fileName}.json`);
             const fileContent = await fs.readFile(filePath, 'utf-8');
